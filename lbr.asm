@@ -25,6 +25,8 @@ include    kernel.inc
            br      start
 
 include    date.inc
+include    build.inc
+           db      'Written by Michael H. Riley',0
 
 command:   db      0
 libname:   dw      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -150,6 +152,9 @@ ext_nmlp:  ldi     0                   ; need to read 1 byte
            glo     rc                  ; check bytes read count
            lbz     lst_done            ; jump if end of file
            dec     rf                  ; get last byte read
+           ldn     rf                  ; retrieve last read byte
+           smi     01ah                ; check for XMODEM pad character
+           lbz     lst_done            ; jump if 1E
            lda     rf
            lbnz    ext_nmlp            ; get rest of name
            ldi     high fname          ; point to filename
@@ -283,6 +288,9 @@ lst_nmlp:  ldi     high buffer         ; point to buffer
            plo     rf
            ldn     rf                  ; get read byte
            lbz     lst_nmdn            ; jump if end of name found
+           smi     01ah                ; check for XMODEM pad character
+           lbz     lst_done            ; done if found
+           ldn     rf                  ; recover byte
            sep     scall               ; otherwise display it
            dw      o_type
            lbr     lst_nmlp            ; and keep going
@@ -299,6 +307,9 @@ lst_nmdn:  sep     scall               ; move to next screen line
            sep     scall               ; read a byte
            dw      o_read
            lbdf    lst_done            ; jump if end of file
+           glo     rc
+           smi     5
+           lbnz    lst_done
            ldi     high buffer         ; point to buffer
            phi     rf
            ldi     low buffer
