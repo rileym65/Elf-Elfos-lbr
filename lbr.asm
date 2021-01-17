@@ -175,14 +175,20 @@ ext_nmlp:  ldi     0                   ; need to read 1 byte
            plo     rc
            sep     scall               ; read them
            dw      o_read
-           ldi     high fname          ; point to filename
+           ldi     3                   ; create/truncate file
+           plo     r7
+           mov     rf,buffer           ; point to flags
+           ldn     rf
+           ani     1                   ; see if exec flag is set
+           lbz     noexec              ; jump if not
+           ldi     11                  ; otherwise set for open
+           plo     r7
+noexec:    ldi     high fname          ; point to filename
            phi     rf
            ldi     low fname
            plo     rf
            ldi     low ffildes         ; point to file fildes
            plo     rd 
-           ldi     3                   ; create/truncate file
-           plo     r7
            sep     scall               ; open the output file
            dw      o_open
            ldi     high buffer         ; need to get file size
@@ -376,13 +382,21 @@ add_loop:  ldn     ra                  ; get next byte from args
            sep     scall               ; open the file
            dw      o_open
            lbdf    filerr              ; jump if could not open file
+           ldi     (ffildes+8).0       ; point to flags byte
+           plo     rd
+           ldn     rd                  ; get flags
+           shl                         ; move executable flag to low bit
+           shl
+           shlc
+           ani     1                   ; keep only executable bit
+           plo     re                  ; save it for a moment
            ldi     low lfildes         ; get library file descriptor
            plo     rd                  ; into descriptor
            ldi     high buffer         ; where to write the bytes
            phi     rf
            ldi     low buffer
            plo     rf
-           ldi     0                   ; flags byte
+           glo     re                  ; Recover flags byte
            str     rf
            ldi     0                   ; 1 byte to write
            phi     rc
